@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package button;
+
+
+enum ButtonEvent {
+  BUTTON_EVENT_UNSPECIFIED = 0;
+  BUTTON_EVENT_PRESSED = 1;
+}
+
+message Button {
+  ButtonEvent event = 1;
+
+}
+
+enum LEDState {
+  LED_STATE_UNSPECIFIED = 0;
+  LED_STATE_ON = 1;
+  LED_STATE_OFF = 2;
+}
+
+message LED {
+  LEDState state = 1;
+}

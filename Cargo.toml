@@ -1,0 +1,11 @@
+[package]
+name = "type-test"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+chrono = "0.4.37"
+protobuf = "3.4.0"
+
+[build-dependencies]
+protobuf-codegen = "3.4.0"
