@@ -1,27 +1,29 @@
 use std::collections::HashMap;
+use std::fmt::Debug;
 use std::hash::Hash;
 
 pub trait DBObj {}
 
 pub trait FSMController<T: FSMState> {
-    fn save_func(&self, obj: &T, to_delete: Option<T::Action>, to_add: Option<&T::Action>);
+    fn save_func(&mut self, obj: &T, to_delete: Option<T::Action>, to_add: Option<&T::Action>);
+    fn get(&self) -> Option<T>;
 }
 
 pub trait ActionGetter<T: FSMState> {
-    fn unroll(&self, state: &T) -> Vec<T::Action>;
+    fn unroll(&mut self, state: &T) -> Vec<T::Action>;
 }
 
 pub trait StateEnum: Eq + PartialEq + Hash {}
 pub trait EventEnum: Eq + PartialEq + Hash {}
 
-pub trait FSMState: DBObj + Sized {
+pub trait FSMState: DBObj + Sized + Clone + Debug {
     type State: StateEnum;
     type Action: FSMAction;
 
     fn get_state(&self) -> Self::State;
 }
 
-pub trait FSMAction: DBObj + Sized {
+pub trait FSMAction: DBObj + Sized + Clone + Debug {
     type Event: EventEnum;
 
     fn get_event(&self) -> Self::Event;
@@ -53,14 +55,26 @@ impl<'a, T: FSMState, SD: FSMController<T>, AD: ActionGetter<T>> FSM<T, SD, AD> 
         }
     }
 
-    pub fn run(&self, state: T) {
-        let actions = self.action_driver.unroll(&state);
+    pub fn run(&mut self, state: T) {
+
 
         let mut state = state;
-        for action in actions {
-            let hook = self.routes.get(&state.get_state()).unwrap();
-            let new_action = hook(&mut state, &action);
-            self.state_driver.save_func(&state, Some(action), new_action.as_ref());
+        loop {
+            let actions = self.action_driver.unroll(&state);
+            if actions.len() == 0 {
+                break;
+            }
+            for action in actions {
+                let action = action;
+                let hook = self.routes.get(&state.get_state()).unwrap();
+                let new_action = hook(&mut state, &action);
+                self.state_driver.save_func(&state, Some(action), new_action.as_ref());
+            }
+
+            state = match self.state_driver.get() {
+                Some(state) => state,
+                None => break,
+            };
         }
     }
 }
